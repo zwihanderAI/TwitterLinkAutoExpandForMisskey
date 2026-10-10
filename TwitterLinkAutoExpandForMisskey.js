@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Twitter Link Auto Expand for Misskey
-// @version      1.0
+// @version      1.1
 // @author       NyaHo
 // @match        https://buicha.social/*
 // @grant        none
 // @run-at       document-idle
-// @description  Twitterの展開ボタンを自動的にクリックする
+// @description  Twitterのリンクを自動的に展開する
 // ==/UserScript==
 
 (function ()
@@ -17,7 +17,7 @@
     );
 
     const containerSelector = 'div.xyu7z.xoC1u'; //タイムラインdiv要素のクラス名
-    const buttonSelector = 'button._button.xbaFh.xfjt2.xrmjY'; //ボタン要素のクラス名
+    const expandButtonText = 'ポストを展開する'; //ボタン内の表示文字列
 
     setTimeout(() =>
     {
@@ -42,10 +42,17 @@
                         }
 
                         //ボタン要素を検索しクリックイベントを発火
-                        const buttons = addedNode.querySelectorAll(buttonSelector);
+                        const buttons = addedNode.matches('button')
+                            ? [addedNode]
+                            : addedNode.querySelectorAll('button');
 
                         buttons.forEach((button) =>
                         {
+                            if (!button.textContent.includes(expandButtonText))
+                            {
+                                return;
+                            }
+
                             console.log('[Tampermonkey::Twitter Link Auto Expand for Misskey] Button Click');
                             button.click();
                         });

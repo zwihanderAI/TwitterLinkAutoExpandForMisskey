@@ -6,9 +6,8 @@ Misskeyタイムライン上のTwitterリンクを自動で展開するTampermon
 
 1. 対象ドメイン
 ヘッダ内の`@match https://buicha.social/*`箇所を実際に使用するインスタンスのURLへ修正する
-2. クラス名
-div要素, button要素のクラス名が実際のhtml内の値と異なる場合は修正する
-```
+2. タイムラインのクラス名
+タイムラインのdiv要素のクラス名が実際のHTML内の値と異なる場合は修正する
+```js
 const containerSelector = 'div.xyu7z.xoC1u';
-const buttonSelector = 'button._button.xbaFh.xfjt2.xrmjY';
 ```
