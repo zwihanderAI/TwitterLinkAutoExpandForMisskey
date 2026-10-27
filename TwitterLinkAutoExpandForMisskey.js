@@ -1,69 +1,82 @@
 // ==UserScript==
 // @name         Twitter Link Auto Expand for Misskey
-// @version      1.1
+// @version      2.0
 // @author       NyaHo
 // @match        https://buicha.social/*
 // @grant        none
 // @run-at       document-idle
-// @description  Twitterのリンクを自動的に展開する
+// @description  Twitterの展開ボタンを自動的にクリックする
 // ==/UserScript==
 
-(function ()
-{
+(function () {
     'use strict';
 
-    console.log(
-        '[Tampermonkey::Twitter Link Auto Expand for Misskey] Script loaded'
-    );
+    const BUTTON_TEXTS = [
+        'ポストを展開する',
+        'ツイートを展開する'
+    ];
 
-    const containerSelector = 'div.xyu7z.xoC1u'; //タイムラインdiv要素のクラス名
-    const expandButtonText = 'ポストを展開する'; //ボタン内の表示文字列
+    const clickedButtons = new WeakSet();
+    let scanTimer = null;
 
-    setTimeout(() =>
-    {
-        console.log(
-            '[Tampermonkey::Twitter Link Auto Expand for Misskey] Script Start'
-        );
+    // X(Twitter)のポストURLか確認
+    function isTwitterUrl(href) {
+        try {
+            const url = new URL(href);
+            const hosts = [
+                'x.com',
+                'mobile.x.com',
+                'twitter.com',
+                'mobile.twitter.com'
+            ];
 
-        const containers = document.querySelectorAll(containerSelector);
+            return hosts.includes(url.hostname)
+                && /^\/[^/]+\/status(?:es)?\/\d+/.test(url.pathname);
+        } catch {
+            return false;
+        }
+    }
 
-        containers.forEach((container) =>
-        {
-            const observer = new MutationObserver((mutationList) =>
-            {
-                mutationList.forEach((mutation) =>
-                {
-                    mutation.addedNodes.forEach((addedNode) =>
-                    {
-                        // テキストノードなどを除外
-                        if (addedNode.nodeType !== Node.ELEMENT_NODE)
-                        {
-                            return;
-                        }
+    // 展開ボタンを検索してクリック
+    function expandTwitterPosts() {
+        document.querySelectorAll('button').forEach(button => {
+            if (clickedButtons.has(button)) return;
+            if (button.disabled) return;
 
-                        //ボタン要素を検索しクリックイベントを発火
-                        const buttons = addedNode.matches('button')
-                            ? [addedNode]
-                            : addedNode.querySelectorAll('button');
+            const text = button.textContent.trim();
+            if (!BUTTON_TEXTS.includes(text)) return;
 
-                        buttons.forEach((button) =>
-                        {
-                            if (!button.textContent.includes(expandButtonText))
-                            {
-                                return;
-                            }
+            // MisskeyのURLプレビューの親要素
+            const preview = button.parentElement?.parentElement;
+            if (!preview) return;
 
-                            console.log('[Tampermonkey::Twitter Link Auto Expand for Misskey] Button Click');
-                            button.click();
-                        });
-                    });
-                });
-            });
+            // 対応するX(Twitter)のリンクを確認
+            const link = preview.querySelector('a[href]');
+            if (!link || !isTwitterUrl(link.href)) return;
 
-            observer.observe(container, {
-                childList: true,
-                subtree: false
-            });
+            clickedButtons.add(button);
+            button.click();
         });
-    }, 1500);
+    }
+
+    // DOM更新時の処理をまとめる
+    function scheduleScan() {
+        if (scanTimer !== null) return;
+
+        scanTimer = setTimeout(() => {
+            scanTimer = null;
+            expandTwitterPosts();
+        }, 100);
+    }
+
+    // 初期表示の投稿を処理
+    expandTwitterPosts();
+
+    // タイムラインの更新やスクロールによる追加投稿を監視
+    const observer = new MutationObserver(scheduleScan);
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 })();
